@@ -223,6 +223,7 @@ static char* strlsize(char* buf, int64_t bytes, size_t buflen)
 
 enum
 {
+    TAG_NAME,
     TAG_SESSION,
     TAG_STATS,
     TAG_DETAILS,
@@ -290,6 +291,7 @@ static tr_option opts[] =
     { 921, "session-stats", "Show the session's statistics", "st", 0, NULL },
     { 'l', "list", "List all torrents", "l", 0, NULL },
     { 960, "move", "Move current torrent's data to a new folder", NULL, 1, "<path>" },
+    { 999, "rename", "Rename top-level file/dir and torrent, pass old and new name", NULL, 2, "<path> <path>" },
     { 961, "find", "Tell Transmission where to find a torrent's data", NULL, 1, "<path>" },
     { 'm', "portmap", "Enable portmapping via NAT-PMP or UPnP", "m", 0, NULL },
     { 'M', "no-portmap", "Disable portmapping", "M", 0, NULL },
@@ -381,7 +383,8 @@ enum
     MODE_SESSION_STATS = (1 << 11),
     MODE_SESSION_CLOSE = (1 << 12),
     MODE_BLOCKLIST_UPDATE = (1 << 13),
-    MODE_PORT_TEST = (1 << 14)
+    MODE_PORT_TEST = (1 << 14),
+    MODE_TORRENT_RENAME = (1 << 15)
 };
 
 static int getOptMode(int val)
@@ -510,6 +513,9 @@ static int getOptMode(int val)
 
     case 960: /* move */
         return MODE_TORRENT_SET_LOCATION;
+
+    case 999: /* rename */
+        return MODE_TORRENT_RENAME;
 
     default:
         fprintf(stderr, "unrecognized argument %d\n", val);
@@ -2892,6 +2898,23 @@ static int processArgs(char const* rpcurl, int argc, char const* const* argv)
                     args = tr_variantDictAddDict(top, ARGUMENTS, 3);
                     tr_variantDictAddStr(args, TR_KEY_location, optarg);
                     tr_variantDictAddBool(args, TR_KEY_move, true);
+                    addIdArg(args, id, NULL);
+                    status |= flush(rpcurl, &top);
+                    break;
+                }
+
+            case 999:
+                {
+                    tr_variant* top;
+                    tr_variant* args;
+                    tr_variant* fields;
+
+                    top = tr_new0(tr_variant, 1);
+                    tr_variantInitDict(top, 2);
+                    tr_variantDictAddStr(top, TR_KEY_method, "torrent-rename-path");
+                    args = tr_variantDictAddDict(top, ARGUMENTS, 3);
+                    tr_variantDictAddStr(args, TR_KEY_path, optarg);
+                    tr_variantDictAddStr(args, TR_KEY_name, optarg + strlen(optarg) + 1);
                     addIdArg(args, id, NULL);
                     status |= flush(rpcurl, &top);
                     break;
