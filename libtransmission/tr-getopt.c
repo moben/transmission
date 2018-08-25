@@ -250,8 +250,9 @@ int tr_getopt(char const* usage, int argc, char const* const* argv, tr_option co
     }
 
     /* throw an error if the option needed an argument but didn't get one */
-    if (++tr_optind >= argc)
+    if (tr_optind++ + o->has_arg >= argc)
     {
+        tr_optind += o->has_arg;
         return TR_OPT_ERR;
     }
 
@@ -260,6 +261,7 @@ int tr_getopt(char const* usage, int argc, char const* const* argv, tr_option co
         return TR_OPT_ERR;
     }
 
-    *setme_optarg = argv[tr_optind++];
+    *setme_optarg = argv[tr_optind];
+    tr_optind += o->has_arg;
     return o->val;
 }
